@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stress Lab Seguro</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: #121934;
+      --accent: #5eead4;
+      --warn: #fbbf24;
+      --danger: #fb7185;
+      --text: #e5eefc;
+      --muted: #9fb0d0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: radial-gradient(circle at top, #182349, var(--bg) 60%);
+      color: var(--text);
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      min-height: 100vh;
+    }
+    aside {
+      background: rgba(8, 12, 24, 0.9);
+      border-right: 1px solid rgba(255,255,255,0.08);
+      padding: 22px;
+      overflow: auto;
+    }
+    main { position: relative; min-height: 100vh; }
+    canvas { width: 100%; height: 100vh; display: block; }
+    h1 { margin: 0 0 12px; font-size: 1.7rem; }
+    p, li, label { color: var(--muted); line-height: 1.45; }
+    .card {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 18px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 10px;
+    }
+    .metric {
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .metric strong { display: block; font-size: 1.1rem; color: white; }
+    .control { margin: 14px 0; }
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    input[type="range"] { width: 100%; }
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-top: 8px;
+    }
+    .primary { background: var(--accent); color: #08121f; }
+    .secondary { background: #243156; color: var(--text); }
+    .danger { background: var(--danger); color: white; }
+    .badge {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.82rem;
+      background: rgba(251,191,36,0.14);
+      color: var(--warn);
+      margin-bottom: 12px;
+    }
+    #overlay {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(8,12,24,0.85);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 12px 14px;
+      min-width: 220px;
+      backdrop-filter: blur(12px);
+    }
+    code { color: var(--accent); }
+    .small { font-size: 0.9rem; }
+    @media (max-width: 960px) {
+      .layout { grid-template-columns: 1fr; }
+      aside { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
+      canvas { height: 60vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <span class="badge">Modo seguro y limitado</span>
+      <h1>Laboratorio de estrés del navegador</h1>
+      <p>
+        No puedo ayudarte a crear una página para <strong>bloquear o derribar</strong> un equipo saturando GPU, RAM y CPU sin control.
+        En su lugar, aquí tienes un <strong>benchmark controlado</strong> para pruebas locales, con límites, botón de parada y métricas en tiempo real.
+      </p>
+
+      <div class="card">
+        <h2>GPU / escena 3D</h2>
+        <div class="control">
+          <div class="control-header"><label for="instances">Modelos</label><strong id="instancesValue">250</strong></div>
+          <input id="instances" type="range" min="50" max="1500" step="50" value="250" />
+        </div>
+        <div class="control">
+          <div class="control-header"><label for="subdivisions">Detalle geométrico</label><strong id="subdivisionsValue">96</strong></div>
+          <input id="subdivisions" type="range" min="24" max="160" step="8" value="96" />
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>CPU / workers</h2>
+        <div class="control">
+          <div class="control-header"><label for="workers">Workers</label><strong id="workersValue">4</strong></div>
+          <input id="workers" type="range" min="1" max="8" step="1" value="4" />
+        </div>
+        <div class="control">
+          <div class="control-header"><label for="computeBatch">Intensidad matemática</label><strong id="computeBatchValue">200000</strong></div>
+          <input id="computeBatch" type="range" min="50000" max="500000" step="50000" value="200000" />
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Memoria</h2>
+        <div class="control">
+          <div class="control-header"><label for="memoryChunks">Bloques</label><strong id="memoryChunksValue">24</strong></div>
+          <input id="memoryChunks" type="range" min="4" max="64" step="4" value="24" />
+        </div>
+        <div class="control">
+          <div class="control-header"><label for="chunkSize">MB por bloque</label><strong id="chunkSizeValue">8</strong></div>
+          <input id="chunkSize" type="range" min="1" max="16" step="1" value="8" />
+        </div>
+        <p class="small">Límite total aproximado: <strong id="memoryEstimate">192 MB</strong>.</p>
+      </div>
+
+      <div class="card">
+        <button id="startBtn" class="primary">Iniciar benchmark</button>
+        <button id="stopBtn" class="danger">Detener</button>
+        <button id="resetBtn" class="secondary">Liberar memoria</button>
+        <p class="small">
+          Recomendado para pruebas locales con supervisión. Si tu navegador se vuelve inestable, pulsa <code>Detener</code>.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Notas</h2>
+        <ul>
+          <li>Usa <code>requestAnimationFrame</code> para la carga gráfica.</li>
+          <li>Usa <code>Web Workers</code> para la carga de CPU sin congelar totalmente la UI.</li>
+          <li>La memoria se reserva en bloques tipados y se puede liberar.</li>
+        </ul>
+      </div>
+    </aside>
+
+    <main>
+      <canvas id="glCanvas"></canvas>
+      <div id="overlay">
+        <div><strong>FPS:</strong> <span id="fps">0</span></div>
+        <div><strong>Triángulos:</strong> <span id="triangles">0</span></div>
+        <div><strong>Workers activos:</strong> <span id="workerStatus">0</span></div>
+        <div><strong>Memoria reservada:</strong> <span id="memoryStatus">0 MB</span></div>
+        <div><strong>Estado:</strong> <span id="status">esperando</span></div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const ui = {
+      instances: document.getElementById('instances'),
+      subdivisions: document.getElementById('subdivisions'),
+      workers: document.getElementById('workers'),
+      computeBatch: document.getElementById('computeBatch'),
+      memoryChunks: document.getElementById('memoryChunks'),
+      chunkSize: document.getElementById('chunkSize'),
+      startBtn: document.getElementById('startBtn'),
+      stopBtn: document.getElementById('stopBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      fps: document.getElementById('fps'),
+      triangles: document.getElementById('triangles'),
+      workerStatus: document.getElementById('workerStatus'),
+      memoryStatus: document.getElementById('memoryStatus'),
+      status: document.getElementById('status'),
+      memoryEstimate: document.getElementById('memoryEstimate')
+    };
+
+    const valueLabels = ['instances', 'subdivisions', 'workers', 'computeBatch', 'memoryChunks', 'chunkSize'];
+    valueLabels.forEach((id) => {
+      const input = ui[id];
+      const label = document.getElementById(`${id}Value`);
+      const update = () => {
+        label.textContent = input.value;
+        updateMemoryEstimate();
+      };
+      input.addEventListener('input', update);
+      update();
+    });
+
+    const canvas = document.getElementById('glCanvas');
+    const gl = canvas.getContext('webgl', { antialias: false, depth: true, powerPreference: 'high-performance' });
+    if (!gl) {
+      ui.status.textContent = 'WebGL no disponible';
+      throw new Error('WebGL no disponible');
+    }
+
+    let animationId = 0;
+    let running = false;
+    let workers = [];
+    let memoryBlocks = [];
+    let triangleCount = 0;
+    let lastFpsUpdate = performance.now();
+    let frames = 0;
+
+    function updateMemoryEstimate() {
+      const total = Number(ui.memoryChunks.value) * Number(ui.chunkSize.value);
+      ui.memoryEstimate.textContent = `${total} MB`;
+    }
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      canvas.width = Math.floor(canvas.clientWidth * dpr);
+      canvas.height = Math.floor(canvas.clientHeight * dpr);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function compileShader(type, source) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        throw new Error(gl.getShaderInfoLog(shader));
+      }
+      return shader;
+    }
+
+    const vertexSource = `
+      attribute vec3 aPosition;
+      attribute vec3 aNormal;
+      uniform mat4 uProj;
+      uniform mat4 uView;
+      uniform float uTime;
+      varying float vLight;
+      void main() {
+        float idx = float(gl_InstanceID);
+        float angle = idx * 0.618 + uTime * 0.2;
+        float radius = 8.0 + mod(idx, 60.0) * 0.28;
+        vec3 offset = vec3(
+          cos(angle) * radius,
+          sin(angle * 0.7) * 6.0,
+          sin(angle) * radius
+        );
+        vec3 animated = aPosition + offset;
+        vec3 lightDir = normalize(vec3(0.4, 0.8, 0.6));
+        vLight = max(dot(normalize(aNormal), lightDir), 0.12);
+        gl_Position = uProj * uView * vec4(animated, 1.0);
+      }
+    `;
+
+    const fragmentSource = `
+      precision mediump float;
+      varying float vLight;
+      void main() {
+        vec3 base = vec3(0.20, 0.85, 0.76) * vLight;
+        vec3 accent = vec3(0.45, 0.35, 0.95) * pow(vLight, 3.0);
+        gl_FragColor = vec4(base + accent, 1.0);
+      }
+    `;
+
+    const program = gl.createProgram();
+    gl.attachShader(program, compileShader(gl.VERTEX_SHADER, vertexSource.replace('gl_InstanceID', '0.0')));
+    gl.attachShader(program, compileShader(gl.FRAGMENT_SHADER, fragmentSource));
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      throw new Error(gl.getProgramInfoLog(program));
+    }
+    gl.useProgram(program);
+
+    const aPosition = gl.getAttribLocation(program, 'aPosition');
+    const aNormal = gl.getAttribLocation(program, 'aNormal');
+    const uProj = gl.getUniformLocation(program, 'uProj');
+    const uView = gl.getUniformLocation(program, 'uView');
+    const uTime = gl.getUniformLocation(program, 'uTime');
+
+    const positionBuffer = gl.createBuffer();
+    const normalBuffer = gl.createBuffer();
+
+    function createSphere(segments) {
+      const positions = [];
+      const normals = [];
+      const latSteps = segments;
+      const lonSteps = segments;
+      for (let lat = 0; lat < latSteps; lat++) {
+        const theta1 = (lat / latSteps) * Math.PI;
+        const theta2 = ((lat + 1) / latSteps) * Math.PI;
+        for (let lon = 0; lon < lonSteps; lon++) {
+          const phi1 = (lon / lonSteps) * Math.PI * 2;
+          const phi2 = ((lon + 1) / lonSteps) * Math.PI * 2;
+          const verts = [
+            spherical(theta1, phi1), spherical(theta2, phi1), spherical(theta2, phi2),
+            spherical(theta1, phi1), spherical(theta2, phi2), spherical(theta1, phi2)
+          ];
+          verts.forEach((v) => {
+            positions.push(v[0], v[1], v[2]);
+            normals.push(v[0], v[1], v[2]);
+          });
+        }
+      }
+      return {
+        positions: new Float32Array(positions),
+        normals: new Float32Array(normals),
+        triangles: positions.length / 9
+      };
+    }
+
+    function spherical(theta, phi) {
+      return [
+        Math.sin(theta) * Math.cos(phi),
+        Math.cos(theta),
+        Math.sin(theta) * Math.sin(phi)
+      ];
+    }
+
+    function uploadGeometry() {
+      const geometry = createSphere(Number(ui.subdivisions.value));
+      triangleCount = geometry.triangles * Number(ui.instances.value);
+      ui.triangles.textContent = triangleCount.toLocaleString('es-ES');
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, geometry.positions, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(aPosition);
+      gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, geometry.normals, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(aNormal);
+      gl.vertexAttribPointer(aNormal, 3, gl.FLOAT, false, 0, 0);
+
+      return geometry.positions.length / 3;
+    }
+
+    function mat4Perspective(fov, aspect, near, far) {
+      const f = 1 / Math.tan(fov / 2);
+      return new Float32Array([
+        f / aspect, 0, 0, 0,
+        0, f, 0, 0,
+        0, 0, (far + near) / (near - far), -1,
+        0, 0, (2 * far * near) / (near - far), 0
+      ]);
+    }
+
+    function mat4View(time) {
+      const angle = time * 0.00025;
+      const eyeX = Math.cos(angle) * 22;
+      const eyeZ = Math.sin(angle) * 22;
+      return lookAt([eyeX, 8, eyeZ], [0, 0, 0], [0, 1, 0]);
+    }
+
+    function lookAt(eye, target, up) {
+      const z = normalize(subtract(eye, target));
+      const x = normalize(cross(up, z));
+      const y = cross(z, x);
+      return new Float32Array([
+        x[0], y[0], z[0], 0,
+        x[1], y[1], z[1], 0,
+        x[2], y[2], z[2], 0,
+        -dot(x, eye), -dot(y, eye), -dot(z, eye), 1
+      ]);
+    }
+
+    function subtract(a, b) { return [a[0]-b[0], a[1]-b[1], a[2]-b[2]]; }
+    function cross(a, b) { return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+    function dot(a, b) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+    function normalize(v) {
+      const len = Math.hypot(v[0], v[1], v[2]) || 1;
+      return [v[0]/len, v[1]/len, v[2]/len];
+    }
+
+    function reserveMemory() {
+      releaseMemory();
+      const totalBlocks = Number(ui.memoryChunks.value);
+      const chunkMB = Number(ui.chunkSize.value);
+      const bytesPerChunk = chunkMB * 1024 * 1024;
+      for (let i = 0; i < totalBlocks; i++) {
+        const block = new Uint8Array(bytesPerChunk);
+        for (let j = 0; j < block.length; j += 4096) {
+          block[j] = (i + j) % 251;
+        }
+        memoryBlocks.push(block);
+      }
+      ui.memoryStatus.textContent = `${totalBlocks * chunkMB} MB`;
+    }
+
+    function releaseMemory() {
+      memoryBlocks = [];
+      ui.memoryStatus.textContent = '0 MB';
+    }
+
+    function workerCode() {
+      self.onmessage = (event) => {
+        const { batchSize } = event.data;
+        let active = true;
+        self.onmessage = (nextEvent) => {
+          if (nextEvent.data.type === 'stop') active = false;
+        };
+        let accumulator = 0;
+        while (active) {
+          for (let i = 1; i < batchSize; i++) {
+            accumulator += Math.sqrt(i) * Math.sin(i * 0.001) * Math.cos(i * 0.0001);
+          }
+          self.postMessage(accumulator);
+        }
+        self.close();
+      };
+    }
+
+    function startWorkers() {
+      stopWorkers();
+      const blob = new Blob([`(${workerCode.toString()})()`], { type: 'application/javascript' });
+      const url = URL.createObjectURL(blob);
+      const totalWorkers = Number(ui.workers.value);
+      for (let i = 0; i < totalWorkers; i++) {
+        const worker = new Worker(url);
+        worker.postMessage({ batchSize: Number(ui.computeBatch.value) });
+        workers.push(worker);
+      }
+      ui.workerStatus.textContent = String(workers.length);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function stopWorkers() {
+      workers.forEach((worker) => {
+        worker.postMessage({ type: 'stop' });
+        worker.terminate();
+      });
+      workers = [];
+      ui.workerStatus.textContent = '0';
+    }
+
+    let vertexCount = uploadGeometry();
+
+    function render(now) {
+      if (!running) return;
+      animationId = requestAnimationFrame(render);
+      frames += 1;
+      if (now - lastFpsUpdate >= 500) {
+        ui.fps.textContent = String(Math.round((frames * 1000) / (now - lastFpsUpdate)));
+        frames = 0;
+        lastFpsUpdate = now;
+      }
+
+      gl.enable(gl.DEPTH_TEST);
+      gl.clearColor(0.03, 0.05, 0.12, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.uniformMatrix4fv(uProj, false, mat4Perspective(Math.PI / 3, canvas.width / canvas.height, 0.1, 100));
+      gl.uniformMatrix4fv(uView, false, mat4View(now));
+      gl.uniform1f(uTime, now * 0.001);
+      for (let i = 0; i < Number(ui.instances.value); i++) {
+        gl.drawArrays(gl.TRIANGLES, 0, vertexCount);
+      }
+    }
+
+    function startBenchmark() {
+      vertexCount = uploadGeometry();
+      reserveMemory();
+      startWorkers();
+      running = true;
+      ui.status.textContent = 'ejecutando';
+      cancelAnimationFrame(animationId);
+      animationId = requestAnimationFrame(render);
+    }
+
+    function stopBenchmark() {
+      running = false;
+      cancelAnimationFrame(animationId);
+      stopWorkers();
+      ui.status.textContent = 'detenido';
+    }
+
+    ui.startBtn.addEventListener('click', startBenchmark);
+    ui.stopBtn.addEventListener('click', stopBenchmark);
+    ui.resetBtn.addEventListener('click', () => {
+      stopBenchmark();
+      releaseMemory();
+      ui.status.textContent = 'memoria liberada';
+    });
+
+    updateMemoryEstimate();
+    ui.triangles.textContent = triangleCount.toLocaleString('es-ES');
+  </script>
+</body>
+</html>
